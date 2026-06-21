@@ -43,14 +43,12 @@ function getHistory() { return loadJSON(STORAGE_KEYS.HISTORY, []); }
 function saveHistory(h) { saveJSON(STORAGE_KEYS.HISTORY, h); }
 
 function getDailyCount(dateKey) {
-  const all = loadJSON(STORAGE_KEYS.DAILY, {});
-  return all[dateKey] ?? 0;
+  return parseInt(localStorage.getItem("jtfg_daily_" + dateKey), 10) || 0;
 }
 function incrementDailyCount() {
   const key = todayKey();
-  const all = loadJSON(STORAGE_KEYS.DAILY, {});
-  all[key] = (all[key] ?? 0) + 1;
-  saveJSON(STORAGE_KEYS.DAILY, all);
+  const count = getDailyCount(key) + 1;
+  localStorage.setItem("jtfg_daily_" + key, String(count));
   updateTodayCount();
 }
 function updateTodayCount() {
@@ -272,7 +270,7 @@ function finishPractice() {
 
 // ============ 模拟考试 ============
 let examState = null;
-let examTimerInterval = null;
+let examRAF = 0;
 const EXAM_TOTAL_MS = 45 * 60 * 1000;
 
 document.getElementById("startExamBtn").addEventListener("click", startExam);
@@ -285,8 +283,7 @@ function startExam() {
     indices,
     answers: {},
     submitted: false,
-    startAt: Date.now(),
-    endAt: Date.now() + EXAM_TOTAL_MS
+    startAt: Date.now()
   };
   document.getElementById("startExamBtn").classList.add("hidden");
   document.getElementById("submitExamBtn").classList.remove("hidden");
@@ -362,21 +359,22 @@ function updateExamProgress() {
 
 function startExamTimer() {
   updateExamTimerDisplay();
-  examTimerInterval = setInterval(() => {
-    if (!examState || examState.submitted) { clearInterval(examTimerInterval); return; }
-    const remain = examState.endAt - Date.now();
-    if (remain <= 0) {
-      clearInterval(examTimerInterval);
+  function tick() {
+    if (!examState || examState.submitted) return;
+    if (Date.now() - examState.startAt >= EXAM_TOTAL_MS) {
       alert("考试时间到！系统将自动提交试卷。");
       submitExam();
       return;
     }
     updateExamTimerDisplay();
-  }, 500);
+    examRAF = requestAnimationFrame(tick);
+  }
+  examRAF = requestAnimationFrame(tick);
 }
 
 function updateExamTimerDisplay() {
-  const remain = Math.max(0, examState.endAt - Date.now());
+  const elapsed = Date.now() - examState.startAt;
+  const remain = Math.max(0, EXAM_TOTAL_MS - elapsed);
   const mins = Math.floor(remain / 60000);
   const secs = Math.floor((remain % 60000) / 1000);
   const txt = `${String(mins).padStart(2,"0")}:${String(secs).padStart(2,"0")}`;
@@ -388,7 +386,7 @@ function updateExamTimerDisplay() {
 
 function submitExam() {
   if (!examState || examState.submitted) return;
-  if (examTimerInterval) { clearInterval(examTimerInterval); examTimerInterval = null; }
+  if (examRAF) { cancelAnimationFrame(examRAF); examRAF = 0; }
   examState.submitted = true;
   const {indices, answers} = examState;
   let correct = 0, wrong = 0, unanswered = 0;
@@ -459,6 +457,7 @@ function submitExam() {
 }
 
 function resetExam() {
+  if (examRAF) { cancelAnimationFrame(examRAF); examRAF = 0; }
   examState = null;
   document.getElementById("exam-area").classList.add("hidden");
   document.getElementById("exam-result").classList.add("hidden");
@@ -625,6 +624,7 @@ function drawRadarChart() {
   const W = canvas.width, H = canvas.height;
   const cx = W/2, cy = H/2;
   const radius = Math.min(W, H) * 0.32;
+  const RADAR_ANGLES = [-Math.PI/2, -Math.PI/2 + Math.PI/2, -Math.PI/2 + Math.PI, -Math.PI/2 + 3*Math.PI/2];
   ctx.clearRect(0, 0, W, H);
   const stats = getStats();
   const rates = CATEGORIES.map(c => {
@@ -635,7 +635,7 @@ function drawRadarChart() {
     const r = radius * lvl / 5;
     ctx.beginPath();
     for (let i = 0; i < 4; i++) {
-      const angle = -Math.PI/2 + i * Math.PI/2;
+      const angle = RADAR_ANGLES[i];
       const x = cx + r * Math.cos(angle);
       const y = cy + r * Math.sin(angle);
       if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
@@ -651,20 +651,18 @@ function drawRadarChart() {
     }
   }
   for (let i = 0; i < 4; i++) {
-    const angle = -Math.PI/2 + i * Math.PI/2;
     ctx.beginPath();
     ctx.moveTo(cx, cy);
-    ctx.lineTo(cx + radius * Math.cos(angle), cy + radius * Math.sin(angle));
+    ctx.lineTo(cx + radius * Math.cos(RADAR_ANGLES[i]), cy + radius * Math.sin(RADAR_ANGLES[i]));
     ctx.strokeStyle = "#cbd5e1";
     ctx.lineWidth = 1;
     ctx.stroke();
   }
   ctx.beginPath();
   for (let i = 0; i < 4; i++) {
-    const angle = -Math.PI/2 + i * Math.PI/2;
     const r = radius * rates[i];
-    const x = cx + r * Math.cos(angle);
-    const y = cy + r * Math.sin(angle);
+    const x = cx + r * Math.cos(RADAR_ANGLES[i]);
+    const y = cy + r * Math.sin(RADAR_ANGLES[i]);
     if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
   }
   ctx.closePath();
@@ -674,10 +672,9 @@ function drawRadarChart() {
   ctx.lineWidth = 2;
   ctx.stroke();
   for (let i = 0; i < 4; i++) {
-    const angle = -Math.PI/2 + i * Math.PI/2;
     const r = radius * rates[i];
-    const x = cx + r * Math.cos(angle);
-    const y = cy + r * Math.sin(angle);
+    const x = cx + r * Math.cos(RADAR_ANGLES[i]);
+    const y = cy + r * Math.sin(RADAR_ANGLES[i]);
     ctx.beginPath();
     ctx.arc(x, y, 5, 0, Math.PI*2);
     ctx.fillStyle = "#fff";
@@ -687,10 +684,9 @@ function drawRadarChart() {
     ctx.stroke();
   }
   for (let i = 0; i < 4; i++) {
-    const angle = -Math.PI/2 + i * Math.PI/2;
     const labelR = radius + 36;
-    const lx = cx + labelR * Math.cos(angle);
-    const ly = cy + labelR * Math.sin(angle);
+    const lx = cx + labelR * Math.cos(RADAR_ANGLES[i]);
+    const ly = cy + labelR * Math.sin(RADAR_ANGLES[i]);
     const pct = Math.round(rates[i] * 100);
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
