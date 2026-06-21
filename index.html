@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>驾照科目一交通法规练习</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>驾照科目一 · 交通法规练习</h1>
+    <div class="stats-bar">
+      <span id="todayCount">今日练习：0 次</span>
+      <span id="modeLabel">模式：首页</span>
+    </div>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab-btn active" data-tab="home">首页</button>
+    <button class="tab-btn" data-tab="practice">分类练习</button>
+    <button class="tab-btn" data-tab="exam">模拟考试</button>
+    <button class="tab-btn" data-tab="wrong">错题本</button>
+    <button class="tab-btn" data-tab="stats">学习统计</button>
+  </nav>
+
+  <main>
+    <section id="tab-home" class="tab-content active">
+      <div class="card-grid">
+        <div class="card" onclick="switchTab('practice')">
+          <div class="card-icon">📚</div>
+          <h3>分类练习</h3>
+          <p>按信号灯、标志标线、行车规范、违章处罚四类专项练习</p>
+        </div>
+        <div class="card" onclick="switchTab('exam')">
+          <div class="card-icon">📝</div>
+          <h3>模拟考试</h3>
+          <p>随机抽取45题，限时45分钟，模拟真实考试</p>
+        </div>
+        <div class="card" onclick="switchTab('wrong')">
+          <div class="card-icon">❌</div>
+          <h3>错题本</h3>
+          <p>集中攻克错题，连续答对2次自动移出</p>
+        </div>
+        <div class="card" onclick="switchTab('stats')">
+          <div class="card-icon">📊</div>
+          <h3>学习统计</h3>
+          <p>查看四类题目的正确率雷达图</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="tab-practice" class="tab-content">
+      <div class="category-select">
+        <h3>选择练习类别：</h3>
+        <div class="category-btns">
+          <button class="cat-btn" data-cat="信号灯">🚦 信号灯 (20题)</button>
+          <button class="cat-btn" data-cat="标志标线">🛑 标志标线 (20题)</button>
+          <button class="cat-btn" data-cat="行车规范">🚗 行车规范 (20题)</button>
+          <button class="cat-btn" data-cat="违章处罚">⚖️ 违章处罚 (20题)</button>
+          <button class="cat-btn all-btn" data-cat="all">🎯 全部类别 (80题)</button>
+        </div>
+      </div>
+      <div id="practice-area" class="quiz-area hidden"></div>
+    </section>
+
+    <section id="tab-exam" class="tab-content">
+      <div class="exam-header">
+        <div class="exam-info">
+          <span id="examTimer">⏱️ 剩余时间：45:00</span>
+          <span id="examProgress">📋 进度：0 / 45</span>
+        </div>
+        <div class="exam-actions">
+          <button id="startExamBtn" class="btn-primary">开始模拟考试</button>
+          <button id="submitExamBtn" class="btn-secondary hidden">提交试卷</button>
+        </div>
+      </div>
+      <div id="exam-area" class="quiz-area hidden"></div>
+      <div id="exam-result" class="result-area hidden"></div>
+    </section>
+
+    <section id="tab-wrong" class="tab-content">
+      <div class="wrong-header">
+        <h3 id="wrongCount">错题本：共 0 题</h3>
+        <button id="startWrongBtn" class="btn-primary">开始错题练习</button>
+        <button id="clearWrongBtn" class="btn-danger">清空错题本</button>
+      </div>
+      <div id="wrong-area" class="quiz-area hidden"></div>
+    </section>
+
+    <section id="tab-stats" class="tab-content">
+      <div class="stats-container">
+        <div class="radar-wrap">
+          <h3>分类正确率雷达图</h3>
+          <canvas id="radarChart" width="400" height="400"></canvas>
+        </div>
+        <div class="stats-detail">
+          <h3>详细统计</h3>
+          <div id="statsList"></div>
+          <h3 style="margin-top:20px;">历史练习记录</h3>
+          <div id="historyList"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>数据保存在本地浏览器 · 打开即练，无需联网</p>
+  </footer>
+</div>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
